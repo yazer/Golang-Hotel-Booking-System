@@ -3,6 +3,8 @@ package render
 import (
 	"bytes"
 	"fmt"
+	"golang-hotel-booking-system/cmd/pkg/config"
+	"golang-hotel-booking-system/cmd/pkg/models"
 	"html/template"
 	"log"
 	"net/http"
@@ -11,23 +13,38 @@ import (
 
 var functions = template.FuncMap{}
 
-func RenderTemplate(w http.ResponseWriter, html string) {
+var app *config.AppConfig
 
-	tc, err := CreateTemplateCache()
-	if err != nil {
-		log.Fatal(err)
+func NewTemplate(a *config.AppConfig) {
+	app = a
+}
+
+func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+
+	return td
+}
+
+func RenderTemplate(w http.ResponseWriter, html string, td *models.TemplateData) {
+	var tc map[string]*template.Template
+
+	if app.UseCache {
+		tc = app.TemplateCache
+	} else {
+		tc, _ = CreateTemplateCache()
 	}
+
 
 	t, ok := tc[html]
 	if !ok {
-		log.Fatal(err)
+		log.Fatal("Could not get template fromtemplate cache")
 	} 
 
 	buf := new(bytes.Buffer)
 
-	_ = t.Execute(buf, nil)
+	td = AddDefaultData(td)
+	_ = t.Execute(buf, td)
 
-	_, err = buf.WriteTo(w)
+	_, err := buf.WriteTo(w)
 	if err != nil {
 		fmt.Println("Error in writing template to brower", err)
 	}
